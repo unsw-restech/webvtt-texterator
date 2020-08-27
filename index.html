@@ -1,0 +1,87 @@
+<html>
+
+<head>
+  <title>WebVTT texterator</title>
+
+  <style type="text/css">
+  body {
+    width: 36em; max-width: 90%;
+    margin: 3em auto;
+
+    font-family: sans-serif;
+    font-size: 20px; line-height: 1.7em;
+  }
+
+  .error { color: red; }
+  </style>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/vtt.js/0.13.0/vtt.min.js" integrity="sha512-GH6mknENW301TpQQAkTuxEt6mgsO/X/WvlYb3PSBzrS96lywqZmOsOXoGkmyVoxNgc+D4LkTdzNeU1soGvvg2A==" crossorigin="anonymous"></script>
+</head>
+
+<body>
+  <h1>WebVTT texterator</h1>
+
+  <p>Upload a VTT file/s: <input type="file" id="file" accept=".vtt, text/vtt" multiple=true /></p>
+  <p><input type="button" id="button" value="Refresh results" /></p>
+
+  <div id="resultsArea"></div>
+
+  <script type="text/javascript">
+    const fileInput = document.getElementById("file");
+    const button = document.getElementById("button");
+    const resultsArea = document.getElementById("resultsArea");
+
+    function refreshResults() {
+      resultsArea.textContent = ""; // trash the child elements under .resultsArea
+
+      var files = Array.from(fileInput.files);
+
+      files.forEach(async function(file) {
+        var resultElements = await parseFile(file);
+
+        var header = document.createElement("h2");
+        header.textContent = file.name;
+        resultsArea.appendChild(header);
+
+        resultElements.forEach(function(element) {
+          resultsArea.appendChild(element);
+        });
+      });
+    }
+
+    async function parseFile(file) {
+      var text = await file.text();
+      var cues = [];
+      var resultElements = [];
+
+      const parser = new WebVTT.Parser(window, WebVTT.StringDecoder());
+
+      parser.oncue = function(cue) {
+        cues.push(cue);
+      };
+      parser.onparsingerror = function(error) {
+        console.log(error);
+
+        var errorMessage = document.createElement("p");
+        errorMessage.textContent = error.message;
+        errorMessage.classList.add("error");
+        resultElements.push(errorMessage);
+      };
+
+      parser.parse(text);
+      parser.flush();
+
+      cues.forEach(function(cue) {
+        div = WebVTT.convertCueToDOMTree(window, cue.text);
+        resultElements.push(div);
+      });
+
+      return resultElements;
+    }
+
+    button.addEventListener("click", function(){refreshResults()});
+    //fileInput.addEventListener("change", function(){refreshResults()}, false);
+  </script>
+</body>
+
+</html>
